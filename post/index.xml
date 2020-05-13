@@ -2,21 +2,21 @@
 <rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom">
   <channel>
     <title>Posts on Polemius blog</title>
-    <link>http://polemius.dev/post/</link>
+    <link>https://polemius.dev/post/</link>
     <description>Recent content in Posts on Polemius blog</description>
     <generator>Hugo -- gohugo.io</generator>
     <language>en-us</language>
     <lastBuildDate>Mon, 14 Oct 2019 20:00:21 +0000</lastBuildDate>
     
-	<atom:link href="http://polemius.dev/post/index.xml" rel="self" type="application/rss+xml" />
+	<atom:link href="https://polemius.dev/post/index.xml" rel="self" type="application/rss+xml" />
     
     
     <item>
       <title>How I reduce the size of the library with genetic algorithm</title>
-      <link>http://polemius.dev/post/nanoid-genetic-algorithm/</link>
+      <link>https://polemius.dev/post/nanoid-genetic-algorithm/</link>
       <pubDate>Mon, 14 Oct 2019 20:00:21 +0000</pubDate>
       
-      <guid>http://polemius.dev/post/nanoid-genetic-algorithm/</guid>
+      <guid>https://polemius.dev/post/nanoid-genetic-algorithm/</guid>
       <description>TL; DR I&amp;rsquo;ve decreased the size of nanoid by 1 byte using a genetic algorithm.
 Nanoid is a tiny (139 bytes) string ID generator for JavaScript.
 The server sends to browsers gzipped files, so if we can optimize the library&amp;rsquo;s code for gzip algorithm then the amount of transferred data would be lower.
@@ -25,10 +25,10 @@ The size of this library contains the code itself of course and the alphabet t
     
     <item>
       <title>Use the multiple ssh keys with github</title>
-      <link>http://polemius.dev/post/multiple-ssh-keys-github/</link>
+      <link>https://polemius.dev/post/multiple-ssh-keys-github/</link>
       <pubDate>Mon, 27 May 2019 21:21:21 +0000</pubDate>
       
-      <guid>http://polemius.dev/post/multiple-ssh-keys-github/</guid>
+      <guid>https://polemius.dev/post/multiple-ssh-keys-github/</guid>
       <description>It is a quick note about how to handle multiple ssh keys for github.com.
 First of all lets create two diffirent ssh keys:
 $ ssh-keygen -t rsa -b 4096 -C &amp;#34;first_email@example.com&amp;#34; -f .ssh/first_key $ ssh-keygen -t rsa -b 4096 -C &amp;#34;second_email@example.com&amp;#34; -f .ssh/second_key After that create the config file in .ssh directory:
