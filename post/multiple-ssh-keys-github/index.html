@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<html><meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Blog</title>
+<meta name="description" content="The blog post about how configurate the github with multiple ssh keys">
+<base href="http://example.org/">
+<link rel="canonical" href="http://example.org/post/multiple-ssh-keys-github/">
+<link rel="stylesheet" href="css/main.css"><body><div class="header">
+    <nav class="header__links">
+        <a href="/" class="header__link">Home</a>
+        
+    </nav>
+    <nav class="social_media">
+        <a class="social_media__link" target="__blank" rel="noopener noreferrer nofollow" href="https://twitter.com/polemius">
+            <img class="social_media__link__icon" alt='Twitter icon' src="/icons/twitter.svg" />
+        </a>
+        <a class="social_media__link" target="__blank" rel="noopener noreferrer nofollow" href="https://github.com/polemius">
+            <img class="social_media__link__icon" alt='Github icon' src="/icons/github.svg" />
+        </a>
+    </div>
+</div><div class="content">
+<h1>Use the multiple ssh keys with github</h1>
+<p>It is a quick note about how to handle multiple ssh keys for github.com.</p>
+<p>First of all lets create two diffirent ssh keys:</p>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-bash" data-lang="bash">$ ssh-keygen -t rsa -b <span style="color:#ae81ff">4096</span> -C <span style="color:#e6db74">&#34;first_email@example.com&#34;</span> -f .ssh/first_key
+$ ssh-keygen -t rsa -b <span style="color:#ae81ff">4096</span> -C <span style="color:#e6db74">&#34;second_email@example.com&#34;</span> -f .ssh/second_key
+</code></pre></div><p>After that create the config file in <code>.ssh</code> directory:</p>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-javascript" data-lang="javascript"><span style="color:#a6e22e">$</span> <span style="color:#a6e22e">touch</span> .<span style="color:#a6e22e">ssh</span><span style="color:#f92672">/</span><span style="color:#a6e22e">config</span>
+</code></pre></div><p>and put the configuration in:</p>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-bash" data-lang="bash">Host first.github.com
+    HostName github.com
+    User git
+    IdentityFile ~/.ssh/first_key
+
+Host second.github.com
+    HostName github.com
+    User git
+    IdentityFile ~/.ssh/second_key
+</code></pre></div><p>Now you can use different keys depends of path.</p>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-bash" data-lang="bash">$ ssh git@first.github.com
+$ ssh git@second.github.com
+</code></pre></div>
+
+        </div></body>
+</html>

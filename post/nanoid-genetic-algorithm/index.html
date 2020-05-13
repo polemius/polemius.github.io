@@ -1,0 +1,104 @@
+<!DOCTYPE html>
+<html><meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Blog</title>
+<meta name="description" content="The blog post about using genetic algorithm to reduce the size of library">
+<base href="http://example.org/">
+<link rel="canonical" href="http://example.org/post/nanoid-genetic-algorithm/">
+<link rel="stylesheet" href="css/main.css"><body><div class="header">
+    <nav class="header__links">
+        <a href="/" class="header__link">Home</a>
+        
+    </nav>
+    <nav class="social_media">
+        <a class="social_media__link" target="__blank" rel="noopener noreferrer nofollow" href="https://twitter.com/polemius">
+            <img class="social_media__link__icon" alt='Twitter icon' src="/icons/twitter.svg" />
+        </a>
+        <a class="social_media__link" target="__blank" rel="noopener noreferrer nofollow" href="https://github.com/polemius">
+            <img class="social_media__link__icon" alt='Github icon' src="/icons/github.svg" />
+        </a>
+    </div>
+</div><div class="content">
+<h1>How I reduce the size of the library with genetic algorithm</h1>
+<p><strong>TL; DR</strong> I&rsquo;ve decreased the size of <a href="https://github.com/ai/nanoid">nanoid</a> by 1 byte using a genetic algorithm.</p>
+<p><a href="https://github.com/ai/nanoid">Nanoid</a> is a tiny (139 bytes) string ID generator for JavaScript.</p>
+<p>The server sends to browsers gzipped files, so if we can optimize the library&rsquo;s code for gzip algorithm then the amount of transferred data would be lower.</p>
+<p>The size of this library contains the code itself of course and the <em>alphabet</em> to get the symbols.</p>
+<p>If we look in <a href="https://github.com/ai/nanoid/commit/395e57f83d0bf565d0daf5b012a61464e120a1cb#diff-07fa9a7ce00e46c7d975483d790d7cee">git history</a> of nanoid library we can see that the first commit has this string:</p>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-javascript" data-lang="javascript"><span style="color:#a6e22e">module</span>.<span style="color:#a6e22e">exports</span> <span style="color:#f92672">=</span>
+    <span style="color:#e6db74">&#39;_~0123456789&#39;</span> <span style="color:#f92672">+</span>
+    <span style="color:#e6db74">&#39;abcdefghijklmnopqrstuvwxyz&#39;</span> <span style="color:#f92672">+</span>
+    <span style="color:#e6db74">&#39;ABCDEFGHIJKLMNOPQRSTUVWXYZ&#39;</span>
+</code></pre></div><p>If we check the size of the library using <a href="http://github.com/ai/size-limit">size-limit</a> than we get that this simple alphabet weight is 73 bytes.</p>
+<p>The lates (2.1.6) version of nanoid has <em>alphabet</em> looking like this:</p>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-javascript" data-lang="javascript"><span style="color:#a6e22e">module</span>.<span style="color:#a6e22e">exports</span> <span style="color:#f92672">=</span>
+    <span style="color:#e6db74">&#39;ModuleSymbhasOwnPr-0123456789ABCDEFGHIJKLNQRTUVWXYZ_cfgijkpqtvxz&#39;</span> 
+</code></pre></div><p>You can see that this string contains a word like <em>Module, Symb, has, Own</em>. Because the code contains these words and gzip can pack <em>url.js</em> in more efficient way (only 64 bytes).</p>
+<p>In one of the issues on github repository of nanoid, I&rsquo;ve read that <a href="https://en.wikipedia.org/wiki/Genetic_algorithm">genetic algoritm</a> can help to find the best string that can be packed as much as possible. And I will try to do it.</p>
+<p>I&rsquo;ve used the library <a href="https://github.com/panchishin/geneticalgorithm">geneticalgorithm</a>. This library needs to define 3 functions:  function to mutate <em>chromosome</em>, function to crossover <em>chromosomes</em> and function to check how good <em>chromosome</em> is.</p>
+<p>I&rsquo;ve started with a fitness function. This function has one input parameter and returns the number:</p>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-javascript" data-lang="javascript"><span style="color:#66d9ef">function</span> <span style="color:#a6e22e">fitnessFunction</span> (<span style="color:#a6e22e">phenotype</span>) {
+    <span style="color:#66d9ef">const</span> <span style="color:#a6e22e">file</span> <span style="color:#f92672">=</span> <span style="color:#a6e22e">js</span>.<span style="color:#a6e22e">replace</span>(<span style="color:#e6db74">/[A-Za-z0-9-_]{30,}/</span>, <span style="color:#a6e22e">phenotype</span>.<span style="color:#a6e22e">alphabet</span>)
+    <span style="color:#66d9ef">const</span> <span style="color:#a6e22e">size</span> <span style="color:#f92672">=</span> <span style="color:#a6e22e">gzipSize</span>.<span style="color:#a6e22e">sync</span>(<span style="color:#a6e22e">file</span>)
+
+    <span style="color:#66d9ef">return</span> <span style="color:#f92672">-</span><span style="color:#ae81ff">1</span> <span style="color:#f92672">*</span> <span style="color:#a6e22e">size</span>
+}
+</code></pre></div><p>To check the size I&rsquo;ve used <a href="https://github.com/sindresorhus/gzip-size">gzip-size</a> library.</p>
+<p>After that I&rsquo;ve defined a function to mutate chromosome:</p>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-javascript" data-lang="javascript"><span style="color:#66d9ef">function</span> <span style="color:#a6e22e">mutationFunction</span> (<span style="color:#a6e22e">phenotype</span>) {
+    <span style="color:#66d9ef">const</span> <span style="color:#a6e22e">i</span> <span style="color:#f92672">=</span> Math.<span style="color:#a6e22e">floor</span>(Math.<span style="color:#a6e22e">random</span>() <span style="color:#f92672">*</span> <span style="color:#a6e22e">phenotype</span>.<span style="color:#a6e22e">alphabet</span>)
+    <span style="color:#66d9ef">const</span> <span style="color:#a6e22e">j</span> <span style="color:#f92672">=</span> Math.<span style="color:#a6e22e">floor</span>(Math.<span style="color:#a6e22e">random</span>() <span style="color:#f92672">*</span> <span style="color:#a6e22e">phenotype</span>.<span style="color:#a6e22e">alphabet</span>)
+    
+    <span style="color:#66d9ef">return</span> {
+        <span style="color:#a6e22e">alphabet</span><span style="color:#f92672">:</span> <span style="color:#a6e22e">swapChars</span>(<span style="color:#a6e22e">alphabetTest</span>, <span style="color:#a6e22e">i</span>, <span style="color:#a6e22e">j</span>)
+    }
+}
+
+<span style="color:#66d9ef">function</span> <span style="color:#a6e22e">swapChars</span> (<span style="color:#a6e22e">str</span>, <span style="color:#a6e22e">index1</span>, <span style="color:#a6e22e">index2</span>) {
+    <span style="color:#66d9ef">let</span> <span style="color:#a6e22e">l</span> <span style="color:#f92672">=</span> <span style="color:#a6e22e">index1</span> <span style="color:#f92672">&lt;</span> <span style="color:#a6e22e">index2</span> <span style="color:#f92672">?</span> <span style="color:#a6e22e">index1</span> <span style="color:#f92672">:</span> <span style="color:#a6e22e">index2</span>
+    <span style="color:#66d9ef">let</span> <span style="color:#a6e22e">h</span> <span style="color:#f92672">=</span> <span style="color:#a6e22e">index1</span> <span style="color:#f92672">&gt;</span> <span style="color:#a6e22e">index2</span> <span style="color:#f92672">?</span> <span style="color:#a6e22e">index1</span> <span style="color:#f92672">:</span> <span style="color:#a6e22e">index2</span>
+    <span style="color:#66d9ef">return</span> <span style="color:#a6e22e">str</span>.<span style="color:#a6e22e">substring</span>(<span style="color:#ae81ff">0</span>, <span style="color:#a6e22e">l</span>) <span style="color:#f92672">+</span>
+        <span style="color:#a6e22e">str</span>[<span style="color:#a6e22e">h</span>] <span style="color:#f92672">+</span>
+        <span style="color:#a6e22e">str</span>.<span style="color:#a6e22e">substring</span>(<span style="color:#a6e22e">l</span> <span style="color:#f92672">+</span> <span style="color:#ae81ff">1</span>, <span style="color:#a6e22e">h</span>) <span style="color:#f92672">+</span>
+        <span style="color:#a6e22e">str</span>[<span style="color:#a6e22e">l</span>] <span style="color:#f92672">+</span>
+        <span style="color:#a6e22e">str</span>.<span style="color:#a6e22e">substring</span>(<span style="color:#a6e22e">h</span> <span style="color:#f92672">+</span> <span style="color:#ae81ff">1</span>, <span style="color:#a6e22e">str</span>.<span style="color:#a6e22e">length</span>)
+}
+</code></pre></div><p>And also the crossover function:</p>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-javascript" data-lang="javascript"><span style="color:#66d9ef">function</span> <span style="color:#a6e22e">crossoverFunction</span> (<span style="color:#a6e22e">phenotypeA</span>, <span style="color:#a6e22e">phenotypeB</span>) {
+    <span style="color:#66d9ef">const</span> <span style="color:#a6e22e">alphabetA</span> <span style="color:#f92672">=</span> <span style="color:#a6e22e">phenotypeA</span>.<span style="color:#a6e22e">alphabet</span>
+    <span style="color:#66d9ef">const</span> <span style="color:#a6e22e">alphabetB</span> <span style="color:#f92672">=</span> <span style="color:#a6e22e">phenotypeB</span>.<span style="color:#a6e22e">alphabet</span>
+    <span style="color:#66d9ef">const</span> <span style="color:#a6e22e">indexA</span> <span style="color:#f92672">=</span>
+        Math.<span style="color:#a6e22e">floor</span>(Math.<span style="color:#a6e22e">random</span>() <span style="color:#f92672">*</span> <span style="color:#a6e22e">alphabetA</span>.<span style="color:#a6e22e">length</span> <span style="color:#f92672">/</span> <span style="color:#ae81ff">2</span> <span style="color:#f92672">+</span> <span style="color:#a6e22e">alphabetA</span>.<span style="color:#a6e22e">length</span> <span style="color:#f92672">/</span> <span style="color:#ae81ff">2</span>)
+    <span style="color:#66d9ef">const</span> <span style="color:#a6e22e">indexB</span> <span style="color:#f92672">=</span>
+        Math.<span style="color:#a6e22e">floor</span>(Math.<span style="color:#a6e22e">random</span>() <span style="color:#f92672">+</span> <span style="color:#a6e22e">alphabetA</span>.<span style="color:#a6e22e">length</span> <span style="color:#f92672">/</span> <span style="color:#ae81ff">2</span>)
+    <span style="color:#66d9ef">const</span> <span style="color:#a6e22e">newStrA</span> <span style="color:#f92672">=</span> <span style="color:#a6e22e">alphabetA</span>.<span style="color:#a6e22e">substring</span>(<span style="color:#a6e22e">indexA</span>, <span style="color:#a6e22e">alphabetA</span>.<span style="color:#a6e22e">length</span>)
+    <span style="color:#66d9ef">const</span> <span style="color:#a6e22e">newStrB</span> <span style="color:#f92672">=</span> <span style="color:#a6e22e">alphabetB</span>.<span style="color:#a6e22e">substring</span>(<span style="color:#ae81ff">0</span>, <span style="color:#a6e22e">indexB</span>)
+
+    <span style="color:#66d9ef">return</span> [
+        { <span style="color:#a6e22e">alphabet</span><span style="color:#f92672">:</span> <span style="color:#a6e22e">addMissingCharacter</span>(<span style="color:#a6e22e">newStrA</span>, <span style="color:#a6e22e">alphabetB</span>) },
+        { <span style="color:#a6e22e">alphabet</span><span style="color:#f92672">:</span> <span style="color:#a6e22e">addMissingCharacter</span>(<span style="color:#a6e22e">newStrB</span>, <span style="color:#a6e22e">alphabetA</span>) }
+    ]
+}
+
+<span style="color:#66d9ef">function</span> <span style="color:#a6e22e">addMissingCharacter</span> (<span style="color:#a6e22e">str</span>, <span style="color:#a6e22e">proto</span>) {
+    <span style="color:#66d9ef">let</span> <span style="color:#a6e22e">newStr</span> <span style="color:#f92672">=</span> <span style="color:#a6e22e">str</span>
+    <span style="color:#66d9ef">for</span> (<span style="color:#66d9ef">let</span> <span style="color:#a6e22e">i</span> <span style="color:#f92672">=</span> <span style="color:#ae81ff">0</span>; <span style="color:#a6e22e">i</span> <span style="color:#f92672">&lt;</span> <span style="color:#a6e22e">proto</span>.<span style="color:#a6e22e">length</span>; <span style="color:#a6e22e">i</span><span style="color:#f92672">++</span>) {
+        <span style="color:#66d9ef">if</span> (<span style="color:#a6e22e">str</span>.<span style="color:#a6e22e">indexOf</span>(<span style="color:#a6e22e">proto</span>[<span style="color:#a6e22e">i</span>]) <span style="color:#f92672">===</span> <span style="color:#f92672">-</span><span style="color:#ae81ff">1</span>) {
+            <span style="color:#a6e22e">newStr</span> <span style="color:#f92672">+=</span> <span style="color:#a6e22e">proto</span>[<span style="color:#a6e22e">i</span>]
+        }
+    }
+    <span style="color:#66d9ef">return</span> <span style="color:#a6e22e">newStr</span>
+}
+</code></pre></div><p>I&rsquo;ve started from the population size of 1000 and the 500 generations. And I get another alphabet string but the size was the same. After that I&rsquo;ve increased the population size to 10000 and 1000 generations and after I wait a while I get this string:</p>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-javascript" data-lang="javascript"><span style="color:#a6e22e">RAHVfgFctiUEv1z0_KSymbhasOwnPr69GqYTJk2L47xpZXIDjQBW3C</span><span style="color:#f92672">-</span><span style="color:#ae81ff">8</span><span style="color:#a6e22e">N5Module</span> 
+</code></pre></div><p>How you can see this string also contains some words but lighter on 1 byte.</p>
+<p>Size limit show that <code>url.js</code> is only 63 bytes.</p>
+<p>After I get this result I was trying to <em>normalize</em> this string a little. I&rsquo;ve moved all words to the start of the string and trying symbol by symbol moved all characters in alphabetic order. And here what I got:</p>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-javascript" data-lang="javascript"><span style="color:#a6e22e">ModuleSymbhasOwnPr</span><span style="color:#f92672">-</span><span style="color:#ae81ff">0123456789</span><span style="color:#a6e22e">ABCDEFGHNRVfgctiUvz_KqYTJkLxpZXIjQW</span>
+</code></pre></div><p>I know that ain&rsquo;t much but with 3 simple functions and a half an hour I managed to find a better solution to decrease the size.</p>
+<p>All code you can find in my <a href="https://github.com/ai/nanoid/pulls">pull request</a>. Actually, you can run this code and maybe you will find a better string that I&rsquo;ve found.</p>
+<p>Thanks for reading.</p>
+
+
+        </div></body>
+</html>
